@@ -26,9 +26,9 @@
         const ctx = canvas.getContext("2d");
 
         let gameOver = false, score = 0, asteroidSpeed = 2, powerUpActive = false, powerUpTimer = 0, gameStarted = false;
-        let AsteroidSpawnInterval = 2000; // Interval for spawning asteroids in milliseconds
+        let AsteroidSpawnInterval = 100; // Interval for spawning asteroids in milliseconds
         let lastAsteroidSpawnTime = Date.now();
-        let touchSensitivity = 27; // Minimum swipe distance to trigger movement
+        let touchSensitivity = 30; // Minimum swipe distance to trigger movement
 
         const spaceship = { width: 20, height: 40, x: canvas.width / 2, y: canvas.height - 60, speed: 2, angle: 0 };
         const asteroids = [];
@@ -240,7 +240,7 @@
 
             updateAsteroids();
             updatePowerUps();
-            spawnAsteroids();
+            spawnAsteroids(); // Call spawnAsteroids to generate new asteroids at intervals
 
             asteroids.forEach((asteroid, index) => { if (asteroid.y > canvas.height) { asteroids.splice(index, 1); score++; } });
             powerUps.forEach((powerUp, index) => { if (powerUp.y > canvas.height) powerUps.splice(index, 1); });
