@@ -6,8 +6,8 @@
     <title>Astro Dodger Game</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(#0d1b2a, #1b263b); color: #fff; font-family: Arial, sans-serif; }
-        #gameCanvas { display: none; border: 2px solid #fff; background-color: #111; }
+        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(#0d1b2a, #1b263b); color: #fff; font-family: Arial, sans-serif; overflow: hidden; }
+        #gameCanvas { display: none; border: 2px solid #fff; background-color: #111; width: 400px; height: 600px; }
         #menu { text-align: center; }
         #menu button { padding: 10px 20px; font-size: 16px; color: #111; background-color: #00ff00; border: none; cursor: pointer; border-radius: 5px; transition: background-color 0.3s; }
         #menu button:hover { background-color: #00cc00; }
@@ -16,10 +16,6 @@
 <body>
     <div id="menu">
         <h1>Astro Dodger</h1>
-        <br>
-        <br>
-        <br>
-        <br>
         <button onclick="startGame()">Play</button>
     </div>
     <canvas id="gameCanvas" width="400" height="600"></canvas>
@@ -29,7 +25,7 @@
         const ctx = canvas.getContext("2d");
 
         let gameOver = false, score = 0, asteroidSpeed = 2, powerUpActive = false, powerUpTimer = 0, gameStarted = false;
-        let AsteroidSpawnInterval = 200; // Controls asteroid spawn frequency (milliseconds)
+        let AsteroidSpawnInterval = 100; // Interval for spawning asteroids in milliseconds
         let lastAsteroidSpawnTime = Date.now();
 
         const spaceship = { width: 20, height: 40, x: canvas.width / 2, y: canvas.height - 60, speed: 2, angle: 0 };
@@ -37,6 +33,7 @@
         const powerUps = [];
 
         let rightPressed = false, leftPressed = false, upPressed = false, downPressed = false;
+        let touchStartX = 0, touchStartY = 0;
 
         document.addEventListener("keydown", (e) => {
             if (e.key === "ArrowRight") rightPressed = true;
@@ -44,11 +41,36 @@
             if (e.key === "ArrowUp") upPressed = true;
             if (e.key === "ArrowDown") downPressed = true;
         });
+
         document.addEventListener("keyup", (e) => {
             if (e.key === "ArrowRight") rightPressed = false;
             if (e.key === "ArrowLeft") leftPressed = false;
             if (e.key === "ArrowUp") upPressed = false;
             if (e.key === "ArrowDown") downPressed = false;
+        });
+
+        // Touch controls for mobile
+        canvas.addEventListener("touchstart", (e) => {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+        });
+
+        canvas.addEventListener("touchmove", (e) => {
+            const touchEndX = e.touches[0].clientX;
+            const touchEndY = e.touches[0].clientY;
+            const diffX = touchEndX - touchStartX;
+            const diffY = touchEndY - touchStartY;
+
+            // Set directions based on swipe movement
+            rightPressed = diffX > 20;
+            leftPressed = diffX < -20;
+            upPressed = diffY < -20;
+            downPressed = diffY > 20;
+        });
+
+        canvas.addEventListener("touchend", () => {
+            // Reset all controls when touch ends
+            rightPressed = leftPressed = upPressed = downPressed = false;
         });
 
         function startGame() {
@@ -102,7 +124,6 @@
         }
 
         function updateSpaceshipDirection() {
-            // Calculate direction vector based on keys pressed
             let dx = 0;
             let dy = 0;
 
@@ -111,16 +132,13 @@
             if (upPressed) dy -= spaceship.speed;
             if (downPressed) dy += spaceship.speed;
 
-            // Update the angle only if there is movement
             if (dx !== 0 || dy !== 0) {
-                spaceship.angle = Math.atan2(dy, dx) + Math.PI / 2; // Add 90° to align with rocket shape
+                spaceship.angle = Math.atan2(dy, dx) + Math.PI / 2;
             }
 
-            // Update position based on direction vector
             spaceship.x += dx;
             spaceship.y += dy;
 
-            // Boundary checks to keep spaceship within canvas
             spaceship.x = Math.max(0, Math.min(canvas.width, spaceship.x));
             spaceship.y = Math.max(0, Math.min(canvas.height, spaceship.y));
         }
@@ -128,7 +146,7 @@
         function createAsteroid() {
             const size = Math.random() * 30 + 10;
             const x = Math.random() * (canvas.width - size);
-            const color = `hsl(${Math.random() * 50 + 30}, 70%, 50%)`; // Rocky brown shades
+            const color = `hsl(${Math.random() * 50 + 30}, 70%, 50%)`;
             asteroids.push({ x, y: 0, size, color });
         }
 
@@ -136,7 +154,7 @@
             const currentTime = Date.now();
             if (currentTime - lastAsteroidSpawnTime > AsteroidSpawnInterval) {
                 createAsteroid();
-                lastAsteroidSpawnTime = currentTime; // Reset the spawn timer
+                lastAsteroidSpawnTime = currentTime;
             }
         }
 
@@ -158,17 +176,8 @@
 
         function drawPowerUps() {
             powerUps.forEach((powerUp) => {
-                if (powerUp.type === 'shield') {
-                    ctx.fillStyle = "#00bfff";
-                    ctx.beginPath();
-                    ctx.rect(powerUp.x, powerUp.y, powerUp.width / 2, 0, Math.PI * 2);
-                } else if (powerUp.type === 'double-score') {
-                    ctx.fillStyle = "#ffa500";
-                    ctx.beginPath();
-                    ctx.rect(powerUp.x - powerUp.width / 2, powerUp.y - powerUp.height / 2, powerUp.width, powerUp.height);
-                }
-                ctx.fill();
-                ctx.closePath();
+                ctx.fillStyle = powerUp.type === 'shield' ? "#00bfff" : "#ffa500";
+                ctx.fillRect(powerUp.x - powerUp.width / 2, powerUp.y - powerUp.height / 2, powerUp.width, powerUp.height);
             });
         }
 
