@@ -2,11 +2,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
     <title>Astro Dodger Game</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body { display: flex; justify-content: center; align-items: center; height: 100vh; background: linear-gradient(#0d1b2a, #1b263b); color: #fff; font-family: Arial, sans-serif; overflow: hidden; }
+        body, html { overflow: hidden; height: 100%; } /* Prevents scrolling */
+        body { display: flex; justify-content: center; align-items: center; background: linear-gradient(#0d1b2a, #1b263b); color: #fff; font-family: Arial, sans-serif; }
         #gameCanvas { display: none; border: 2px solid #fff; background-color: #111; width: 400px; height: 600px; }
         #menu { text-align: center; }
         #menu button { padding: 10px 20px; font-size: 16px; color: #111; background-color: #00ff00; border: none; cursor: pointer; border-radius: 5px; transition: background-color 0.3s; }
@@ -25,8 +26,9 @@
         const ctx = canvas.getContext("2d");
 
         let gameOver = false, score = 0, asteroidSpeed = 2, powerUpActive = false, powerUpTimer = 0, gameStarted = false;
-        let AsteroidSpawnInterval = 100; // Interval for spawning asteroids in milliseconds
+        let AsteroidSpawnInterval = 2000; // Interval for spawning asteroids in milliseconds
         let lastAsteroidSpawnTime = Date.now();
+        let touchSensitivity = 27; // Minimum swipe distance to trigger movement
 
         const spaceship = { width: 20, height: 40, x: canvas.width / 2, y: canvas.height - 60, speed: 2, angle: 0 };
         const asteroids = [];
@@ -61,11 +63,11 @@
             const diffX = touchEndX - touchStartX;
             const diffY = touchEndY - touchStartY;
 
-            // Set directions based on swipe movement
-            rightPressed = diffX > 20;
-            leftPressed = diffX < -20;
-            upPressed = diffY < -20;
-            downPressed = diffY > 20;
+            // Set directions based on swipe movement with touchSensitivity threshold
+            rightPressed = diffX > touchSensitivity;
+            leftPressed = diffX < -touchSensitivity;
+            upPressed = diffY < -touchSensitivity;
+            downPressed = diffY > touchSensitivity;
         });
 
         canvas.addEventListener("touchend", () => {
