@@ -6,35 +6,51 @@
     <title>Astro Dodger Game</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
-        body, html { overflow: hidden; height: 100%; } /* Prevents scrolling */
+        body, html { overflow: hidden; height: 100%; }
         body { display: flex; justify-content: center; align-items: center; background: linear-gradient(#0d1b2a, #1b263b); color: #fff; font-family: Arial, sans-serif; }
         #gameCanvas { display: none; border: 2px solid #fff; background-color: #111; width: 400px; height: 600px; }
-        #menu { text-align: center; }
-        #menu button { padding: 10px 20px; font-size: 16px; color: #111; background-color: #00ff00; border: none; cursor: pointer; border-radius: 5px; transition: background-color 0.3s; }
-        #menu button:hover { background-color: #00cc00; }
+        #menu, #gameOverScreen { text-align: center; }
+        #menu button, #gameOverScreen button { padding: 10px 20px; font-size: 16px; color: #111; background-color: #00ff00; border: none; cursor: pointer; border-radius: 5px; transition: background-color 0.3s; }
+        #menu button:hover, #gameOverScreen button:hover { background-color: #00cc00; }
+        #gameOverScreen { display: none; }
     </style>
 </head>
 <body>
     <div id="menu">
         <h1>Astro Dodger</h1>
         <br>
-        <br>
-        <br>
+        <br>        
         <br>
         <br>
         <br>
         <button onclick="startGame()">Play</button>
     </div>
+
+    <div id="gameOverScreen">
+        <h2>Game Over</h2>
+        <br>
+        <br>
+        <p id="finalScore">Your Score: 0</p>
+        <br>
+        <br>
+        <button onclick="backToMenu()">Back to Menu</button>
+    </div>
+
     <canvas id="gameCanvas" width="400" height="600"></canvas>
+
+    <audio id="backgroundMusic" src="Asteroids Game Boy Title Music.mp3" loop></audio>
+    <audio id="deathSound" src="game_over.mp3"></audio>
 
     <script>
         const canvas = document.getElementById("gameCanvas");
         const ctx = canvas.getContext("2d");
+        const backgroundMusic = document.getElementById("backgroundMusic");
+        const deathSound = document.getElementById("deathSound");
 
         let gameOver = false, score = 0, asteroidSpeed = 2, powerUpActive = false, powerUpTimer = 0, gameStarted = false;
-        let AsteroidSpawnInterval = 100; // Interval for spawning asteroids in milliseconds
+        let AsteroidSpawnInterval = 2000;
         let lastAsteroidSpawnTime = Date.now();
-        let touchSensitivity = 30; // Minimum swipe distance to trigger movement
+        let touchSensitivity = 20;
 
         const spaceship = { width: 20, height: 40, x: canvas.width / 2, y: canvas.height - 60, speed: 2, angle: 0 };
         const asteroids = [];
@@ -57,7 +73,6 @@
             if (e.key === "ArrowDown") downPressed = false;
         });
 
-        // Touch controls for mobile
         canvas.addEventListener("touchstart", (e) => {
             touchStartX = e.touches[0].clientX;
             touchStartY = e.touches[0].clientY;
@@ -69,7 +84,6 @@
             const diffX = touchEndX - touchStartX;
             const diffY = touchEndY - touchStartY;
 
-            // Set directions based on swipe movement with touchSensitivity threshold
             rightPressed = diffX > touchSensitivity;
             leftPressed = diffX < -touchSensitivity;
             upPressed = diffY < -touchSensitivity;
@@ -77,13 +91,14 @@
         });
 
         canvas.addEventListener("touchend", () => {
-            // Reset all controls when touch ends
             rightPressed = leftPressed = upPressed = downPressed = false;
         });
 
         function startGame() {
             document.getElementById("menu").style.display = "none";
+            document.getElementById("gameOverScreen").style.display = "none";
             canvas.style.display = "block";
+            backgroundMusic.play();
             gameStarted = true;
             gameOver = false;
             score = 0;
@@ -94,36 +109,42 @@
             updateGame();
         }
 
+        function backToMenu() {
+            document.getElementById("gameOverScreen").style.display = "none";
+            document.getElementById("menu").style.display = "block";
+            backgroundMusic.pause();
+            backgroundMusic.currentTime = 0;
+            deathSound.pause();
+            deathSound.currentTime = 0;
+        }
+
         function drawSpaceship() {
             ctx.save();
             ctx.translate(spaceship.x, spaceship.y);
             ctx.rotate(spaceship.angle);
 
-            // Draw rocket body
             ctx.fillStyle = "#ff0000";
             ctx.beginPath();
-            ctx.moveTo(0, -spaceship.height / 2); // Nose of the rocket
-            ctx.lineTo(-spaceship.width / 2, spaceship.height / 2); // Left fin
-            ctx.lineTo(spaceship.width / 2, spaceship.height / 2); // Right fin
+            ctx.moveTo(0, -spaceship.height / 2);
+            ctx.lineTo(-spaceship.width / 2, spaceship.height / 2);
+            ctx.lineTo(spaceship.width / 2, spaceship.height / 2);
             ctx.closePath();
             ctx.fill();
 
-            // Draw fins
             ctx.fillStyle = "#fffff0";
             ctx.beginPath();
-            ctx.moveTo(-spaceship.width / 4, spaceship.height / 2); // Left fin
+            ctx.moveTo(-spaceship.width / 4, spaceship.height / 2);
             ctx.lineTo(0, spaceship.height / 4);
-            ctx.lineTo(spaceship.width / 4, spaceship.height / 2); // Right fin
+            ctx.lineTo(spaceship.width / 4, spaceship.height / 2);
             ctx.closePath();
             ctx.fill();
 
-            // Draw thruster flame if moving
             if (upPressed || downPressed || leftPressed || rightPressed) {
                 ctx.fillStyle = "#ff4500";
                 ctx.beginPath();
-                ctx.moveTo(-5, spaceship.height / 2); // Left flame
-                ctx.lineTo(5, spaceship.height / 2);  // Right flame
-                ctx.lineTo(0, spaceship.height / 2 + 10); // Flame tip
+                ctx.moveTo(-5, spaceship.height / 2);
+                ctx.lineTo(5, spaceship.height / 2);
+                ctx.lineTo(0, spaceship.height / 2 + 10);
                 ctx.closePath();
                 ctx.fill();
             }
@@ -206,9 +227,7 @@
                     if (powerUpActive) {
                         asteroids.splice(asteroids.indexOf(asteroid), 1);
                     } else {
-                        gameOver = true;
-                        alert("Game Over! Your score: " + score);
-                        document.location.reload();
+                        endGame();
                     }
                 }
             });
@@ -226,6 +245,16 @@
                     powerUps.splice(powerUps.indexOf(powerUp), 1);
                 }
             });
+        }
+
+        function endGame() {
+            gameOver = true;
+            backgroundMusic.pause();
+            deathSound.play();
+
+            document.getElementById("finalScore").textContent = `Your Score: ${score}`;
+            document.getElementById("gameOverScreen").style.display = "block";
+            canvas.style.display = "none";
         }
 
         function drawScore() {
@@ -246,7 +275,7 @@
 
             updateAsteroids();
             updatePowerUps();
-            spawnAsteroids(); // Call spawnAsteroids to generate new asteroids at intervals
+            spawnAsteroids();
 
             asteroids.forEach((asteroid, index) => { if (asteroid.y > canvas.height) { asteroids.splice(index, 1); score++; } });
             powerUps.forEach((powerUp, index) => { if (powerUp.y > canvas.height) powerUps.splice(index, 1); });
